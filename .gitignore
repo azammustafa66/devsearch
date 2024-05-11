@@ -1,0 +1,46 @@
+# Virtual environment
+env/
+
+# Django project files
+*.pyc
+*.pyo
+__pycache__/
+
+# Static files
+staticfiles/
+
+# Media files
+media/
+
+# Database
+db.sqlite3
+
+# Environment variables
+.env
+
+# IDE files
+.vscode/
+.idea/
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Log files
+*.log
+
+# Cache files
+*.cache
+
+# Coverage reports
+htmlcov/
+
+# Dependency directories
+bin/
+lib/
+include/
+
+# Miscellaneous
+*.swp
+.DS_Store
