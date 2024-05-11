@@ -6,6 +6,9 @@ env/
 *.pyo
 __pycache__/
 
+# env files
+.env.local
+
 # Static files
 staticfiles/
 
