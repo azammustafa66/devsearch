@@ -51,7 +51,7 @@ def update_project(request: HttpRequest, project_id: str):
     form = ProjectForm(instance=project)
 
     if request.method == "POST":
-        form = ProjectForm(request.POST, request.FILES ,instance=project)
+        form = ProjectForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
             form.save()
             return redirect("projects")
