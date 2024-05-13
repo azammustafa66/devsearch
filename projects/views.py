@@ -1,5 +1,6 @@
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
+from django.contrib.auth.decorators import login_required
 
 from .models import Project
 from .forms import ProjectForm
@@ -27,6 +28,7 @@ def project(request: HttpRequest, project_id: str):
     )
 
 
+@login_required(login_url="login")
 def create_project(request: HttpRequest):
     """
     This function is used to render the create project page.
@@ -36,18 +38,21 @@ def create_project(request: HttpRequest):
     if request.method == "POST":
         form = ProjectForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            form.save(commit=False)
+            form.instance.owner = request.user
             return redirect("projects")
 
     context = {"form": form}
     return render(request, "projects/project_form.html", context=context)
 
 
+@login_required(login_url="login")
 def update_project(request: HttpRequest, project_id: str):
     """
     This function is used to render the update project page.
     """
-    project = Project.objects.get(id=project_id)
+    profile = request.user.profile
+    project = profile.project_set.get(id=project_id)
     form = ProjectForm(instance=project)
 
     if request.method == "POST":
@@ -60,15 +65,17 @@ def update_project(request: HttpRequest, project_id: str):
     return render(request, "projects/project_form.html", context=context)
 
 
+@login_required(login_url="login")
 def delete_project(request: HttpRequest, project_id: str):
     """
     This function is used to delete a project.
     """
-    object = Project.objects.get(id=project_id)
-    context = {"object": object}
+    profile = request.user.profile
+    object = profile.project_set.get(id=project_id)
 
     if request.method == "POST":
         object.delete()
-        return redirect("projects")
-
+        return redirect("account")
+    
+    context = {"object": object}
     return render(request, "projects/delete_template.html", context)

@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 import uuid
 
 
@@ -38,3 +40,15 @@ class Skill(models.Model):
 
     def __str__(self):
         return str(self.name)
+
+
+@receiver(post_save, sender=User)
+def create_or_update_user_profile(sender, instance, created, **kwargs):
+    """
+    Automatically create a profile for each new user or update the profile when user details change
+    """
+    profile, _ = Profile.objects.get_or_create(user=instance)
+    profile.name = instance.first_name
+    profile.email = instance.email
+    profile.username = instance.username
+    profile.save()
