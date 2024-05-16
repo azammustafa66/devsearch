@@ -10,4 +10,10 @@ urlpatterns = [
     path("register", views.register_user, name="register"),
     path("account", views.user_account, name="account"),
     path("edit", views.edit_account, name="edit-account"),
+    path("create-skill", views.create_skill, name="create-skill"),
+    path("update-skill/<uuid:id>", views.update_skill, name="update-skill"),
+    path("delete-skill/<uuid:id>", views.delete_skill, name="delete-skill"),
+    path("inbox/", views.inbox, name="inbox"),
+    path("message/<uuid:id>", views.view_message, name="message"),
+    path("create-message/<uuid:recipient_id>", views.create_message, name="create-message"),
 ]

@@ -1,22 +1,108 @@
 import uuid
 from django.db import IntegrityError
 from django.http import HttpRequest
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
 from .models import Profile
-from .forms import CustomUserCreationForm, ProfileForm
+from .forms import (
+    CustomUserCreationForm,
+    ProfileForm,
+    SkillForm,
+    MessageForm,
+    NonAuthenticatedMessageForm,
+)
+from .utils import search_profiles, paginate_profiles
+
+
+def login_user(request: HttpRequest):
+    """
+    This function logs in a user if the user exists in the database and the password is correct
+    """
+    # Redirect the user to the profiles page if they are already logged in
+    if request.user.is_authenticated:
+        return redirect("profiles")
+
+    # Check if the user exists in the database and the password is correct
+    if request.method == "POST":
+        username = request.POST.get("username").lower()
+        password = request.POST.get("password")
+
+        try:
+            user = User.objects.get(username=username)
+        except User.DoesNotExist:
+            messages.error(request, "User does not exist")
+
+        # Authenticate the user
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect(request.GET["next"] if "next" in request.GET else "account")
+        else:
+            messages.error(request, "Username or password is incorrect")
+
+    return render(request, "users/auth.html", {"page": "login"})
+
+
+def logout_user(request: HttpRequest):
+    """
+    This function logs out a user from the application
+    """
+    logout(request)
+    messages.info(request, "You are now logged out")
+    return redirect("login")
+
+
+def register_user(request: HttpRequest):
+    """
+    This function registers a new user in the application
+    """
+    if request.user.is_authenticated:
+        return redirect("profiles")
+
+    page = "register"
+    form = CustomUserCreationForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        try:
+            user = form.save(commit=False)
+            user.username = user.username.lower()
+            user.set_password(form.cleaned_data["password1"])
+            user.save()
+            login(request, user)
+
+            messages.success(request, "User account was created successfully")
+            return redirect("edit-account")
+        except IntegrityError:
+            messages.error(request, "A user with that username already exists.")
+    else:
+        context = {"page": page, "form": form}
+        return render(request, "users/auth.html", context)
+
+    context = {"page": page, "form": form}
+    return render(request, "users/auth.html", context)
 
 
 def profiles(request: HttpRequest):
     """
     This function returns all the profiles in the database
     """
-    queryset = Profile.objects.all()
-    context = {"profiles": queryset}
+    profiles = Profile.objects.all()
+    skills = None
+    query = request.GET.get("q")
+    if query:
+        profiles, skills, query = search_profiles(request, query)
+
+    profiles, custom_range = paginate_profiles(request, profiles, 6)
+    context = {
+        "profiles": profiles,
+        "query": query,
+        "skills": skills,
+        "custom_range": custom_range,
+    }
     return render(request, "users/profiles.html", context)
 
 
@@ -72,74 +158,124 @@ def edit_account(request: HttpRequest):
     return render(request, "users/profile_form.html", context)
 
 
-def login_user(request: HttpRequest):
+@login_required(login_url="login")
+def create_skill(request: HttpRequest):
     """
-    This function logs in a user if the user exists in the database and the password is correct
+    This function creates a new skill for the user
     """
-    # Redirect the user to the profiles page if they are already logged in
-    if request.user.is_authenticated:
-        return redirect("profiles")
+    profile = request.user.profile
+    form = SkillForm()
 
-    # Check if the user exists in the database and the password is correct
     if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
+        form = SkillForm(request.POST)
+        if form.is_valid():
+            skill = form.save(commit=False)
+            skill.owner = profile
+            skill.save()
+            messages.success(request, "Skill created successfully")
+            return redirect("account")
 
-        try:
-            user = User.objects.get(username=username)
-        except User.DoesNotExist:
-            messages.error(request, "User does not exist")
+    context = {"profile": profile, "form": form}
+    return render(request, "users/skill_form.html", context)
 
-        # Authenticate the user
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect("profiles")
+
+@login_required(login_url="login")
+def update_skill(request: HttpRequest, id: uuid.uuid4):
+    """
+    This function creates a new skill for the user
+    """
+    profile = request.user.profile
+    skill = profile.skill_set.get(id=str(id))
+    form = SkillForm(instance=skill)
+
+    if request.method == "POST":
+        form = SkillForm(request.POST, instance=skill)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Skill created successfully")
+            return redirect("account")
+
+    context = {"profile": profile, "form": form}
+    return render(request, "users/skill_form.html", context)
+
+
+@login_required(login_url="login")
+def delete_skill(request: HttpRequest, id: uuid.uuid4):
+    """
+    This function deletes a skill from the user's profile
+    """
+    profile = request.user.profile
+    skill = profile.skill_set.get(id=str(id))
+    context = {"object": skill}
+
+    if request.method == "POST":
+        skill.delete()
+        messages.success(request, "Skill deleted successfully")
+        return redirect("account")
+
+    return render(request, "delete_template.html", context)
+
+
+@login_required(login_url="login")
+def inbox(request: HttpRequest):
+    """
+    This function returns all the messages in the database
+    """
+    profile = request.user.profile
+    messages_request = profile.messages.all()
+    unread_count = profile.messages.filter(is_read=False).count()
+    context = {"messages": messages_request, "unread_count": unread_count}
+    return render(request, "users/inbox.html", context)
+
+
+@login_required(login_url="login")
+def view_message(request: HttpRequest, id: uuid.uuid4):
+    """
+    This function returns a single message based on the id
+    """
+    profile = request.user.profile
+    message = profile.messages.get(id=str(id))
+    if not message.is_read:
+        message.is_read = True
+        message.save()
+    context = {"message": message}
+    return render(request, "users/message.html", context)
+
+
+def create_message(request: HttpRequest, recipient_id: uuid.UUID):
+    """
+    View function for creating a new message.
+    Args:
+        request (HttpRequest): The HTTP request object.
+        recipient_id (uuid.UUID): The UUID of the recipient's profile.
+    """
+    recipient_profile = get_object_or_404(Profile, id=recipient_id)
+    form = None
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            form = NonAuthenticatedMessageForm(request.POST)
         else:
-            messages.error(request, "Username or password is incorrect")
+            form = MessageForm(request.POST)
 
-    return render(request, "users/auth.html", {"page": "login"})
+        if form.is_valid():
+            message = form.save(commit=False)
+            if request.user.is_authenticated:
+                message.sender = request.user.profile
+                message.name = request.user.profile.name
+            else:
+                message.name = form.cleaned_data["name"]
+                message.email = form.cleaned_data["email"]
 
-
-def logout_user(request: HttpRequest):
-    """
-    This function logs out a user from the application
-    """
-    logout(request)
-    messages.info(request, "You are now logged out")
-    return redirect("login")
-
-
-def register_user(request: HttpRequest):
-    if request.user.is_authenticated:
-        return redirect("profiles")
-
-    page = "register"
-    form = CustomUserCreationForm(request.POST or None)
-
-    if request.method == "POST" and form.is_valid():
-        user = form.save(commit=False)
-        username = form.cleaned_data.get("username")
-        password = form.cleaned_data.get("password")
-
-        try:
-            user.username = username
-            user.set_password(password)
-            user.save()
-
-            Profile.objects.create(user=user)
-
-            # Log in the user BEFORE redirecting
-            login(request, user)
-            messages.success(request, "User account was created successfully")
-            return redirect("edit-account")
-
-        except IntegrityError:
-            messages.error(request, "A user with that username already exists.")
+            message.recipient = recipient_profile
+            message.save()
+            next_url = request.GET.get("next", "/")
+            return redirect(next_url)
     else:
-        for field in form:
-            for error in field.errors:
-                messages.error(request, f"{field.label}: {error}")
+        if not request.user.is_authenticated:
+            form = NonAuthenticatedMessageForm()
+        else:
+            form = MessageForm()
 
-    context = {"page": page, "form": form}
-    return render(request, "users/auth.html", context)
+    context = {"form": form}
+    return render(request, "users/message_form.html", context)

@@ -18,7 +18,7 @@ class Profile(models.Model):
         null=True,
         blank=True,
         upload_to="images/profiles/",
-        default="images/profiles/user-default.png",
+        default="profiles/user-default.png",
     )
     social_github = models.CharField(max_length=200, null=True, blank=True)
     social_linkedin = models.CharField(max_length=200, null=True, blank=True)
@@ -52,3 +52,29 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     profile.email = instance.email
     profile.username = instance.username
     profile.save()
+
+
+class Message(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    sender = models.ForeignKey(
+        Profile, on_delete=models.SET_NULL, null=True, related_name="sender", blank=True
+    )
+    recipient = models.ForeignKey(
+        Profile,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="messages",
+        blank=True,
+    )
+    name = models.CharField(max_length=200, null=True, blank=True)
+    email = models.EmailField(max_length=254, null=True, blank=True)
+    subject = models.CharField(max_length=200, null=True, blank=True)
+    body = models.TextField()
+    is_read = models.BooleanField(default=False, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return str(self.subject)
+
+    class Meta:
+        ordering = ["is_read", "-created_at"]

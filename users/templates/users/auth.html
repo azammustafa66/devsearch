@@ -31,7 +31,7 @@
             {% endfor %}
 
             <div class="auth__actions">
-                <input class="btn btn--sub btn--lg" type="submit" value="Sign  In" />
+                <input class="btn btn--sub btn--lg" type="submit" value="Sign Up" />
             </div>
         </form>
         <div class="auth__alternative">
@@ -72,12 +72,12 @@
 
             <div class="auth__actions">
                 <input class="btn btn--sub btn--lg" type="submit" value="Log In" />
-                {% comment %} <a href="{% url 'reset_password' %}">Forgot Password?</a> {% endcomment %}
+                <a href="{% url 'reset_password' %}">Forgot Password?</a>
             </div>
         </form>
 
         <div class="auth__alternative">
-            <p>Don’t have an Account?</p>
+            <p>Don&rsquo;t have an Account?</p>
             <a href="{% url 'register' %}">Sign Up</a>
         </div>
     </div>

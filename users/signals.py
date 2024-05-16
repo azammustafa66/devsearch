@@ -1,34 +1,36 @@
-from django.db.models.signals import post_save, post_delete
+from django.db.models.signals import post_save
 from django.contrib.auth.models import User
 from django.dispatch import receiver
+from django.core.mail import send_mail
+from django.conf import settings
 
 from .models import Profile
 
 
 @receiver(post_save, sender=User)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
-    """
-    Automatically create a profile for each new user or update the profile when user details change
-    """
+def create_profile(sender, instance, created, **kwargs):
+    """Creates a Profile for a new User."""
     if created:
-        user = instance
         Profile.objects.create(
-            user=user,
-            name=user.first_name,
-            email=user.email,
-            username=user.username,
+            user=instance,
+            name=instance.first_name,
+            email=instance.email,
+            username=instance.username,
         )
 
-@receiver(post_save, sender=Profile)
-def update_user_profile(sender, instance, created, **kwargs):
-    """
-    Automatically update the profile when user details change
-    """
-    profile = instance
-    user = profile.user
+        # subject = "Welcome to DevSearch!"
+        # message = (
+        #     f"Hi {instance.first_name},\n\nThank you for joining DevSearch!\n\n..."
+        # )
+        # send_mail(subject, message, settings.EMAIL_HOST_USER, [instance.email])
 
+
+@receiver(post_save, sender=Profile)
+def update_user(sender, instance, created, **kwargs):
+    """Updates the associated User when a Profile is changed."""
     if not created:
-        user.first_name = profile.name
-        user.email = profile.email
-        user.username = profile.username
+        user = instance.user
+        user.first_name = instance.name
+        user.email = instance.email
+        # Avoid updating the username here (potential security issue)
         user.save()

@@ -1,6 +1,4 @@
-{% extends 'main.html' %} 
-
-{% block content %}
+{% extends 'main.html' %} {% block content %}
 <main class="projects">
   <section class="hero-section text-center">
     <div class="container container--narrow">
@@ -9,14 +7,19 @@
       </div>
 
       <div class="hero-section__search">
-        <form class="form" action="#" method="get">
+        <form
+          class="form"
+          id="search-form"
+          action="{% url 'projects' %}"
+          method="GET">
           <div class="form__field">
             <label for="formInput#search">Search By Projects </label>
             <input
               class="input input--text"
               id="formInput#search"
               type="text"
-              name="text"
+              value="{{ query | default_if_none:''}}"
+              name="q"
               placeholder="Search by Project Title" />
           </div>
 
@@ -40,20 +43,21 @@
               <div class="card__body">
                 <h3 class="project__title">{{ project.title }}</h3>
                 <p>
-                  <a class="project__author" href="#">
-                    {{ project.ownser.name }}
+                  <a class="project__author" href="{% url 'profile' project.owner.id %}">
+                    {{ project.owner.name }}
                   </a>
                 </p>
                 <p class="project--rating">
                   <span style="font-weight: bold"
                     >{{ project.vote_ratio }}%</span
                   >
-                  Positive Feedback {{ project.votes }} {{ Votes | pluralize:'s' }}
+                  Positive Feedback {{ project.vote_ratio }}% Positive Feedback
+                  ({{ project.votes }} Vote{{ project.votes|pluralize:"s" }})
                 </p>
                 <div class="project__tags">
                   {% for tag in project.tags.all %}
                   <span class="tag tag--pill tag--main">
-                    <small>{{ tag }}</small>
+                    <small>{{ tag.name }}</small>
                   </span>
                   {% endfor %}
                 </div>
@@ -66,24 +70,7 @@
     </div>
   </section>
 
-  {% comment %}
-  <div class="pagination">
-    <ul class="container">
-      <li><a href="#" class="btn btn--disabled">&#10094; Prev</a></li>
-      <li><a href="#" class="btn btn--sub">01</a></li>
-      <li><a href="#" class="btn">02</a></li>
-      <li><a href="#" class="btn">03</a></li>
-      <li><a href="#" class="btn">04</a></li>
-      <li><a href="#" class="btn">05</a></li>
-      <li><a href="#" class="btn">06</a></li>
-      <li><a href="#" class="btn">07</a></li>
-      <li><a href="#" class="btn">08</a></li>
-      <li><a href="#" class="btn">09</a></li>
-      <li><a href="#" class="btn">10</a></li>
-      <li><a href="#" class="btn">Next &#10095;</a></li>
-    </ul>
-  </div>
-  {% endcomment %}
+  {% include "pagination.html" with queryset=projects custom_range=custom_range %}
 </main>
 
 {% endblock content %}
