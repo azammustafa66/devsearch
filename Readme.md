@@ -15,7 +15,7 @@ DevSearch is a web application that allows developers to search for other develo
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/your-username/devsearch.git
+    git clone https://github.com/azammustafa66/devsearch.git
     ```
 
 2. Install the required dependencies:
