@@ -27,13 +27,7 @@
     <title>DevSearch - Connect with Developers!</title>
   </head>
   <body>
-    {% include 'navbar.html' %} {% comment %} {% if messages %} {% for message
-    in messages %}
-    <div class="alert alert--{{ message.tags }}">
-      <p class="alert__message">{{ message }}</p>
-      <button class="alert__close">x</button>
-    </div>
-    {% endfor %} {% endif %} {% endcomment %} 
+    {% include 'navbar.html' %}
     {% block content %} 
     {% endblock content %}
   </body>

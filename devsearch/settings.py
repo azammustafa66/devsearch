@@ -2,6 +2,14 @@ from pathlib import Path
 from datetime import timedelta
 import environ
 
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("boto3").setLevel(logging.DEBUG)
+logging.getLogger("botocore").setLevel(logging.DEBUG)
+logging.getLogger("s3transfer").setLevel(logging.DEBUG)
+logging.getLogger("urllib3").setLevel(logging.DEBUG)
+
 env = environ.Env()
 environ.Env.read_env(env_file=".env.local")
 
@@ -23,6 +31,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
+    "storages",
     "projects.apps.ProjectsConfig",
     "users.apps.UsersConfig",
 ]
@@ -143,7 +152,7 @@ CORS_ALLOW_HEADERS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "Asia/Kolkata"
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
